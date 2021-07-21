@@ -1,0 +1,17 @@
+# NOTE: Terraform doesn't pick up changes in values file only.
+#       Workaround is to update chart version if you want new values to be deployed
+
+replicaCount: 1 
+image:
+  pullPolicy: IfNotPresent
+  repository: ghcr.io/stefanprodan/podinfo
+  tag: 6.0.0
+nameOverride: "podinfo"
+
+
+ports:
+  http: 9898
+  metrics: 9797
+  grpc: 9999
+
+dummyValue: "dummy1233"

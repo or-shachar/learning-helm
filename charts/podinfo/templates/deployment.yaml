@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  minReadySeconds: 3
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 60
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ quote .Values.ports.metrics }}
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: podinfod
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.ports.http }}
+          protocol: TCP
+        - name: http-metrics
+          containerPort: {{ .Values.ports.metrics }}
+          protocol: TCP
+        - name: grpc
+          containerPort: {{ .Values.ports.grpc }}
+          protocol: TCP
+        command:
+          - ./podinfo
+          - --port={{ .Values.ports.http }}
+          - --port-metrics={{ .Values.ports.metrics }}
+          - --grpc-port={{ .Values.ports.grpc }}
+          - --grpc-service-name={{ .Release.Name }}
+          - --level=info
+          - --random-delay=false
+          - --random-error=false
+        env:
+        - name: PODINFO_UI_COLOR
+          value: "#34577c"
+        {{- include "podinfo.env-config" . | nindent 8 }}
+        livenessProbe:
+          exec:
+            command:
+            - podcli
+            - check
+            - http
+            - localhost:{{ .Values.ports.http }}/healthz
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - podcli
+            - check
+            - http
+            - localhost:{{ .Values.ports.http }}/readyz
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi

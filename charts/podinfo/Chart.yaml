@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pod-info-example
+description: A Helm for podinfo
+
+type: application
+
+version: 0.1.7
